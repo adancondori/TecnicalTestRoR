@@ -1,0 +1,57 @@
+version: "3.8"
+
+
+services:
+#  cache:
+#    image: memcached:1.4-alpine
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: technical_development
+      #MYSQL_USER: admin
+      #MYSQL_PASSWORD: password
+    volumes:
+      - technical_mysql_data:/var/lib/mysql
+    ports:
+       - "3307:3306"
+    networks:
+      - networks_default
+
+#  jobs:
+#    env_file: .env
+#    build: .
+#    volumes:
+#      - .:/app
+#    command: bundle exec rake jobs:work
+#    depends_on:
+#      - db
+
+  app:
+    env_file: .env
+    build:
+      context: .
+      dockerfile: dev.dockerfile
+    #
+    volumes:
+      - .:/app
+    ports: 
+       - "3001:3000"
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      - networks_default
+    environment:
+      DATABASE_URL: mysql2://root:password@db/rails_app_development
+
+volumes:
+  technical_mysql_data:
+    external: false
+networks:
+  networks_default:
+    name: 'networks_default'
+    external: true

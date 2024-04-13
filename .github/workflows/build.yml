@@ -1,0 +1,48 @@
+name: "Build"
+on:
+  push:
+    branches: [ "main" ]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: mysql:8.0.28
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: rails_api_skeleton_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    env:
+      RAILS_ENV: test
+      TEST_DATABASE_HOST: 0.0.0.0
+      TEST_DATABASE_NAME: rails_api_skeleton_test
+      TEST_DATABASE_USERNAME: root
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install Ruby and gems
+        uses: ruby/setup-ruby@v1.123.0
+        with:
+          bundler-cache: true
+      - name: Security audit dependencies
+        run: |
+          bin/bundle exec bundler-audit --update
+          bin/bundle exec brakeman -q -w2
+      - name: Lint Ruby files
+        run: bin/bundle exec rubocop --parallel
+      - name: Run Rspec
+        run: bin/rake
+      - name: Setup Code Climate test-reporter
+        run: |
+          curl -sSL -o /usr/local/bin/cc-test-reporter https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64
+          chmod +x /usr/local/bin/cc-test-reporter
+      - name: Code Climate Test Coverage
+        shell: bash
+        run: |
+          /usr/local/bin/cc-test-reporter before-build
+          /usr/local/bin/cc-test-reporter format-coverage format-coverage coverage/coverage.json -t simplecov -o coverage/codeclimate.json
+          /usr/local/bin/cc-test-reporter sum-coverage coverage/codeclimate.json
+          /usr/local/bin/cc-test-reporter upload-coverage -r dea43a9f2f276458fedcb27725bb965da6ec78e1e1d65b6e22e2a0c986b6d44a
