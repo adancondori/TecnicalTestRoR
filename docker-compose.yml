@@ -1,9 +1,6 @@
 version: "3.8"
 
-
 services:
-#  cache:
-#    image: memcached:1.4-alpine
 
   db:
     image: mysql:8.0
@@ -11,8 +8,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: technical_development
-      #MYSQL_USER: admin
-      #MYSQL_PASSWORD: password
     volumes:
       - technical_mysql_data:/var/lib/mysql
     ports:
@@ -20,21 +15,11 @@ services:
     networks:
       - networks_default
 
-#  jobs:
-#    env_file: .env
-#    build: .
-#    volumes:
-#      - .:/app
-#    command: bundle exec rake jobs:work
-#    depends_on:
-#      - db
-
   app:
     env_file: .env
     build:
       context: .
       dockerfile: dev.dockerfile
-    #
     volumes:
       - .:/app
     ports: 

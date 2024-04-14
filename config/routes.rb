@@ -1,14 +1,7 @@
-# frozen_string_literal: true
-
 Rails.application.routes.draw do
-  resources :healthcheck, only: :index
+  get 'landing/index'
+  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
-  namespace :api do
-    namespace :v1 do
-      mount_devise_token_auth_for "User", at: "users"
-        as :user do
-          # Define routes for User within this block.
-        end
-    end
-  end
+  # Defines the root path route ("/")
+  # root "articles#index"
 end
