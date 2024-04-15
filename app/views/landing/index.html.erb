@@ -1,2 +1,78 @@
-<h1>Landing#index</h1>
-<p>Find me in app/views/landing/index.html.erb</p>
+
+<header class="page-header-ui page-header-ui-light bg-white">
+    <div class="page-header-ui-content pt-5">
+        <div class="container px-5">
+            <div class="row gx-5 align-items-center">
+                <div class="col-lg-6 aos-init aos-animate" data-aos="fade-up">
+                    <h1>Become a <span class="text-warning">URL Shortening Master</span></h1>
+                    <p class="lead my-4">
+                    Shorten your long URLs with ease, track your links, and manage your marketing campaigns with our advanced tools.
+                    </p>
+                    <div class="d-flex flex-column flex-sm-row">
+                        <%= link_to new_url_path, class: 'btn btn-lg btn-primary fw-500 me-sm-3 mb-3 mb-sm-0' do %>
+                            Get started
+                        <% end %>
+
+                    </div>
+
+                </div>
+                <div class="col-lg-6 d-none d-lg-block aos-init aos-animate" data-aos="fade-up" data-aos-delay="100"><img class="img-fluid" src="/images/giant-mission.png" alt="..."></div>
+            </div>
+        </div>
+    </div>
+    <div class="svg-border-rounded text-light">
+        <!-- Rounded SVG Border-->
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144.54 17.34" preserveAspectRatio="none" fill="currentColor"><path d="M144.54,17.34H0V0H144.54ZM0,0S32.36,17.34,72.27,17.34,144.54,0,144.54,0"></path></svg>
+    </div>
+</header>
+<!-- Features Section -->
+<section class="p-5">
+  <div class="container">
+    <div class="row text-center g-4">
+      <div class="col-md">
+        <div class="card bg-light">
+          <div class="card-body text-center">
+            <div class="h1 mb-3">
+              <i class="bi bi-cursor-fill"></i>
+            </div>
+            <h3 class="card-title mb-3">Quick Shortening</h3>
+            <p class="card-text">
+              Shorten your links with our efficient and fast technology that is second to none.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md">
+        <div class="card bg-secondary text-light">
+          <div class="card-body text-center">
+            <div class="h1 mb-3">
+              <i class="bi bi-graph-up"></i>
+            </div>
+            <h3 class="card-title mb-3">Analytics</h3>
+            <p class="card-text">
+              Get detailed insights with our comprehensive analytics for every link you shorten.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md">
+        <div class="card bg-light">
+          <div class="card-body text-center">
+            <div class="h1 mb-3">
+              <i class="bi bi-shield-fill-check"></i>
+            </div>
+            <h3 class="card-title mb-3">Safe and Secure</h3>
+            <p class="card-text">
+              Your security is our priority. Shorten your links with confidence.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+

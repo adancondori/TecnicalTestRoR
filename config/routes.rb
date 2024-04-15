@@ -1,7 +1,17 @@
 Rails.application.routes.draw do
-  get 'landing/index'
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+  root "landing#index"
+  #root 'urls#index'
+  resources :urls, only: [:create, :show, :new] do
+    get :stats, on: :member
+    get :show_info, on: :member
+  end
 
-  # Defines the root path route ("/")
-  # root "articles#index"
+  get '/:short', to: 'urls#show_with_token', as: :short
+  get '/:token/info', to: 'urls#stats', as: :info
+
+  get 'landing/index'
+  get 'home/index'
+  resources :visits
+  resources :urls
+  resources :healthcheck, only: :index
 end

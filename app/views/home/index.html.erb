@@ -1,0 +1,10 @@
+<h1>Acorta tu URL</h1>
+<%= form_with url: urls_path, local: true do |form| %>
+  <div>
+    <%= form.label :original_url, "Tu URL" %>
+    <%= form.text_field :original_url, required: true %>
+  </div>
+  <div>
+    <%= form.submit "Acortar" %>
+  </div>
+<% end %>

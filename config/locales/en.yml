@@ -31,3 +31,9 @@
 
 en:
   hello: "Hello world"
+  activerecord:
+    errors:
+      template:
+        header:
+          one: "Se encontró un error al guardar este %{model}:: "
+          other: "Se encontraron %{count} errores al guardar este %{model}::"

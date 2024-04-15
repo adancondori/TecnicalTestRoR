@@ -1,0 +1,45 @@
+<div class="container mt-5">
+  <div class="card">
+    <div class="card-header">
+      URL Statistics
+    </div>
+    <div class="card-body">
+        <h5 class="card-title">Shortened URL Statistics</h5>
+        <p class="card-text"><strong>Original URL:</strong> <%= @url.original_url %></p>
+        <p class="card-text"> 
+          <strong>Short URL Click:</strong> 
+          <%= link_to request.base_url+"/"+@url.short_url, short_path(short: @url.short_url), class: '' %>
+        </p>
+        <p class="card-text"><strong>Visit Count:</strong> <%= @url.visit_count %></p>
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" value="<%= short_url(@url.short_url) %>" id="shortUrlInput" readonly>
+            <button class="btn btn-outline-secondary" type="button" id="copyButton">Copiar</button>
+        </div>
+
+          <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">IP Address</th>
+                    <th scope="col">Date of Visit</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% @visits.each do |visit| %>
+                    <tr>
+                    <td><%= visit.ip_address %></td>
+                    <td><%= visit.created_at.strftime("%Y-%m-%d %H:%M:%S") %></td>
+                    </tr>
+                <% end %>
+            </tbody>
+        </table>
+    </div>
+  </div>
+    <script>
+    document.getElementById('copyButton').addEventListener('click', function() {
+      const copyText = document.getElementById('shortUrlInput');
+      copyText.select();
+      document.execCommand('copy');
+    });
+  </script>
+</div>
+

@@ -1,24 +1,17 @@
 # README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+Technical Test 
 
-Things you may want to cover:
+### Technologies Used
+    * Rails 7
+    * Ruby 3.2.0
+    * Bootstrap 5
+    * MySql 8
+    * Docker 4.19 (on MacBook)
+    * Docker Compose
 
-* Ruby version
+### Steps to running Projects
 
-* System dependencies
+    * docker compose build
+    * docker composer up
 
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...

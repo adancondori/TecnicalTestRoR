@@ -31,7 +31,7 @@ services:
     networks:
       - networks_default
     environment:
-      DATABASE_URL: mysql2://root:password@db/rails_app_development
+      DATABASE_URL: mysql2://root:password@db/technical_development
 
 volumes:
   technical_mysql_data:
