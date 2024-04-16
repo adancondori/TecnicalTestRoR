@@ -14,7 +14,7 @@ const Comment = () => {
     })
     .then(() => {
       alert('Comentario agregado con éxito.');
-      navigate('/');
+      navigate('/features');
     })
     .catch((error) => {
       console.error('Error al enviar el comentario:', error);
