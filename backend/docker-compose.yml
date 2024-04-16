@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: technical_development
+    volumes:
+      - technical_mysql_data:/var/lib/mysql
+    ports:
+       - "3307:3306"
+    networks:
+      - networks_default
+
+  app:
+    env_file: .env
+    build:
+      context: .
+      dockerfile: dev.dockerfile
+    volumes:
+      - .:/app
+    ports: 
+       - "3001:3000"
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      - networks_default
+    environment:
+      DATABASE_URL: mysql2://root:password@db/technical_development
+
+volumes:
+  technical_mysql_data:
+    external: false
+networks:
+  networks_default:
+    name: 'networks_default'
+    external: true
