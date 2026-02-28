@@ -1,24 +1,28 @@
-# README
+# Backend - Rails API
 
-Technical Test 
+## Technologies
 
-### Technologies Used
-    * Rails 7
-    * Ruby 3.2.0
-    * Bootstrap 5
-    * MySql 8
-    * Docker 4.19 (on MacBook)
-    * Docker Compose
+- Ruby 3.2.0
+- Rails 7
+- MySQL 8
+- Bootstrap 5
+- RSpec
 
-### Steps to running Projects
+## Commands
 
-    * docker compose build
-    * docker composer up
+```bash
+# Start server
+rails server
 
-### Execute task
-    * rake seismic_data:fetch
+# Create database
+rails db:create
 
-### Helpers
-    * docker compose exec app bash
-    * docker-compose exec frontend sh
+# Run migrations
+rails db:migrate
 
+# Run tests
+bundle exec rspec
+
+# Lint
+bundle exec rubocop
+```

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>TecnicalProject</title>
+    <title>Technical Test</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -9,21 +9,18 @@
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
-  
+
   <body>
-    <%= render 'layouts/shared/navbar' %>  
+    <%= render 'layouts/shared/navbar' %>
     <div class="container">
       <% flash.each do |key, message| %>
-        <div class="alert alert-danger alert-dismissible fade show custom-background-red" role="alert">
-          <h4 class="alert-heading">Information</h4>
-          <p> <%= message %> </p>
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+          <p><%= message %></p>
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          <p class="mb-0"></p>
         </div>
       <% end %>
       <%= yield %>
     </div>
     <%= render 'layouts/shared/footer' %>
   </body>
-  
 </html>
