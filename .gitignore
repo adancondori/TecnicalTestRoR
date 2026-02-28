@@ -35,3 +35,8 @@
 # Ignore application configuration
 /config/application.yml
 coverage
+
+# Backend temp/cache/log files
+backend/tmp/
+backend/log/
+backend/storage/
