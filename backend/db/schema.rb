@@ -10,8 +10,31 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2024_01_01_000007) do
-  create_table "merchants", id: :string, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+ActiveRecord::Schema[7.0].define(version: 2024_04_15_121456) do
+  create_table "comments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "feature_id", null: false
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["feature_id"], name: "index_comments_on_feature_id"
+  end
+
+  create_table "features", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.string "external_id"
+    t.decimal "magnitude", precision: 10
+    t.string "place"
+    t.string "time"
+    t.string "tsunami"
+    t.string "mag_type"
+    t.string "title"
+    t.string "external_url"
+    t.decimal "latitude", precision: 10
+    t.decimal "longitude", precision: 10
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "merchants", id: :string, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "business_name", null: false
     t.string "api_key", null: false
     t.string "api_secret", null: false
@@ -24,7 +47,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_01_01_000007) do
     t.index ["status"], name: "index_merchants_on_status"
   end
 
-  create_table "payment_methods", id: :string, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "payment_methods", id: :string, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "merchant_id", null: false
     t.string "type_name", null: false
     t.string "status", default: "ACTIVE", null: false
@@ -49,7 +72,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_01_01_000007) do
     t.index ["token_id"], name: "index_payment_methods_on_token_id", unique: true
   end
 
-  create_table "payment_requests", id: :string, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "payment_requests", id: :string, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "merchant_id", null: false
     t.string "payment_method_id"
     t.string "reference_id", null: false
@@ -79,7 +102,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_01_01_000007) do
     t.index ["status"], name: "index_payment_requests_on_status"
   end
 
-  create_table "refunds", id: :string, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "refunds", id: :string, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "payment_request_id", null: false
     t.string "merchant_id", null: false
     t.integer "amount", null: false
@@ -93,7 +116,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_01_01_000007) do
     t.index ["status"], name: "index_refunds_on_status"
   end
 
-  create_table "three_d_secure_challenges", id: :string, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "three_d_secure_challenges", id: :string, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "payment_method_id", null: false
     t.string "payment_request_id"
     t.string "status", default: "PENDING", null: false
@@ -107,7 +130,26 @@ ActiveRecord::Schema[7.0].define(version: 2024_01_01_000007) do
     t.index ["status"], name: "index_three_d_secure_challenges_on_status"
   end
 
-  create_table "webhook_events", id: :string, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "urls", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.string "original_url"
+    t.string "short_url"
+    t.string "token"
+    t.integer "visit_count"
+    t.string "alias"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["short_url"], name: "index_urls_on_short_url", unique: true
+  end
+
+  create_table "visits", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "url_id", null: false
+    t.string "ip_address"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["url_id"], name: "index_visits_on_url_id"
+  end
+
+  create_table "webhook_events", id: :string, charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "merchant_id", null: false
     t.string "event_type", null: false
     t.json "payload"
@@ -123,11 +165,13 @@ ActiveRecord::Schema[7.0].define(version: 2024_01_01_000007) do
     t.index ["status"], name: "index_webhook_events_on_status"
   end
 
+  add_foreign_key "comments", "features"
   add_foreign_key "payment_methods", "merchants"
   add_foreign_key "payment_requests", "merchants"
   add_foreign_key "payment_requests", "payment_methods"
   add_foreign_key "refunds", "merchants"
   add_foreign_key "refunds", "payment_requests"
   add_foreign_key "three_d_secure_challenges", "payment_methods"
+  add_foreign_key "visits", "urls"
   add_foreign_key "webhook_events", "merchants"
 end
