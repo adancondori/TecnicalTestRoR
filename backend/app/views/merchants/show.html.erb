@@ -22,31 +22,27 @@
     </div>
   <% end %>
 
+  <% current_tab = params[:tab].presence || "transactions" %>
+
   <%# Tabs %>
-  <ul class="nav nav-pills mb-4" id="merchantTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="transactions-tab" data-bs-toggle="pill"
-              data-bs-target="#transactions" type="button" role="tab">
-        Transactions
-      </button>
+  <ul class="nav nav-pills mb-4" id="merchantTabs">
+    <li class="nav-item">
+      <%= link_to "Transactions", merchant_path(@merchant, tab: "transactions"),
+            class: "nav-link #{'active' if current_tab == 'transactions'}" %>
     </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="settings-tab" data-bs-toggle="pill"
-              data-bs-target="#settings" type="button" role="tab">
-        Settings
-      </button>
+    <li class="nav-item">
+      <%= link_to "Settings", merchant_path(@merchant, tab: "settings"),
+            class: "nav-link #{'active' if current_tab == 'settings'}" %>
     </li>
-    <li class="nav-item" role="presentation">
-      <button class="nav-link" id="credentials-tab" data-bs-toggle="pill"
-              data-bs-target="#credentials" type="button" role="tab">
-        API Credentials
-      </button>
+    <li class="nav-item">
+      <%= link_to "API Credentials", merchant_path(@merchant, tab: "credentials"),
+            class: "nav-link #{'active' if current_tab == 'credentials'}" %>
     </li>
   </ul>
 
-  <div class="tab-content" id="merchantTabsContent">
+  <div id="merchantTabsContent">
     <%# === Transactions Tab === %>
-    <div class="tab-pane fade show active" id="transactions" role="tabpanel">
+    <div class="<%= 'd-none' unless current_tab == 'transactions' %>" id="transactions">
       <%# Filters %>
       <div class="card mb-4">
         <div class="card-body">
@@ -168,7 +164,7 @@
     </div>
 
     <%# === Settings Tab === %>
-    <div class="tab-pane fade" id="settings" role="tabpanel">
+    <div class="<%= 'd-none' unless current_tab == 'settings' %>" id="settings">
       <div class="row">
         <div class="col-md-8">
           <div class="card mb-4">
@@ -232,10 +228,40 @@
     </div>
 
     <%# === API Credentials Tab === %>
-    <div class="tab-pane fade" id="credentials" role="tabpanel">
+    <div class="<%= 'd-none' unless current_tab == 'credentials' %>" id="credentials">
       <div class="row">
         <div class="col-md-8">
-          <div class="card">
+          <%# Merchant Info %>
+          <div class="card mb-4">
+            <div class="card-header bg-white">
+              <h5 class="mb-0">Merchant Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <dl class="mb-0">
+                    <dt class="text-muted">Merchant ID</dt>
+                    <dd><code><%= @merchant.id %></code></dd>
+
+                    <dt class="text-muted mt-3">Business Name</dt>
+                    <dd class="fw-bold"><%= @merchant.business_name %></dd>
+                  </dl>
+                </div>
+                <div class="col-md-6">
+                  <dl class="mb-0">
+                    <dt class="text-muted">Status</dt>
+                    <dd><%= status_badge(@merchant.status) %></dd>
+
+                    <dt class="text-muted mt-3">Created At</dt>
+                    <dd><%= @merchant.created_at.strftime("%Y-%m-%d %H:%M:%S UTC") %></dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <%# API Keys %>
+          <div class="card mb-4">
             <div class="card-header bg-white">
               <h5 class="mb-0">API Credentials</h5>
             </div>
@@ -268,12 +294,77 @@
                   </div>
                 </dd>
               </dl>
+            </div>
+          </div>
 
-              <div class="mt-4 p-3 bg-light rounded">
-                <h6>Example Usage (cURL)</h6>
+          <%# Webhook Credentials %>
+          <div class="card mb-4">
+            <div class="card-header bg-white">
+              <h5 class="mb-0">Webhook Configuration</h5>
+            </div>
+            <div class="card-body">
+              <dl>
+                <dt class="text-muted">Callback URL</dt>
+                <dd>
+                  <% if @merchant.callback_url.present? %>
+                    <code><%= @merchant.callback_url %></code>
+                  <% else %>
+                    <span class="text-muted fst-italic">Not configured — set it in the Settings tab</span>
+                  <% end %>
+                </dd>
+
+                <dt class="text-muted mt-3">Webhook Secret</dt>
+                <dd>
+                  <div class="input-group" style="max-width: 500px;">
+                    <input type="password" class="form-control font-monospace" value="<%= @merchant.webhook_secret %>"
+                           id="webhookSecretCred" readonly>
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="toggleVisibility('webhookSecretCred', this)">Show</button>
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="copyToClipboard('webhookSecretCred')">Copy</button>
+                  </div>
+                  <small class="text-muted d-block mt-1">Used to verify webhook signatures (HMAC-SHA256)</small>
+                </dd>
+              </dl>
+            </div>
+          </div>
+
+          <%# Example %>
+          <div class="card">
+            <div class="card-header bg-white">
+              <h5 class="mb-0">Quick Start</h5>
+            </div>
+            <div class="card-body">
+              <h6>Authentication (cURL)</h6>
+              <div class="p-3 bg-light rounded mb-3">
                 <pre class="mb-0 small"><code>curl -u "<%= @merchant.api_key %>:YOUR_API_SECRET" \
   -H "Content-Type: application/json" \
   http://localhost:3001/api/v1/payment_requests</code></pre>
+              </div>
+
+              <h6>Create a Payment</h6>
+              <div class="p-3 bg-light rounded mb-3">
+                <pre class="mb-0 small"><code>curl -u "<%= @merchant.api_key %>:YOUR_API_SECRET" \
+  -X POST http://localhost:3001/api/v1/payment_requests \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reference_id": "order-001",
+    "amount": 50000,
+    "currency": "USD",
+    "card": {
+      "card_number": "4000000000001000",
+      "expiry_month": "12",
+      "expiry_year": "2028",
+      "cvv": "123",
+      "cardholder_name": "John Doe"
+    }
+  }'</code></pre>
+              </div>
+
+              <h6>Verify Webhook Signature</h6>
+              <div class="p-3 bg-light rounded">
+                <pre class="mb-0 small"><code>expected = HMAC-SHA256(webhook_secret, raw_request_body)
+valid = constant_time_compare(expected, X-Webhook-Signature)</code></pre>
               </div>
             </div>
           </div>
