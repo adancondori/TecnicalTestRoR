@@ -1,25 +1,49 @@
-<div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header bg-info text-white">
-          <h4 class="mb-0">eWallet Payment</h4>
-        </div>
-        <div class="card-body">
-          <p class="text-muted">Simulated eWallet payment page</p>
-          <hr>
-          <p><strong>Amount:</strong> <%= number_to_currency(@payment_request.amount / 100.0, unit: @payment_request.currency + " ") %></p>
-          <p><strong>Channel:</strong> <%= @payment_request.channel_code %></p>
-          <p><strong>Reference:</strong> <%= @payment_request.reference_id %></p>
-          <% if @payment_request.description.present? %>
-            <p><strong>Description:</strong> <%= @payment_request.description %></p>
-          <% end %>
-          <hr>
-          <%= form_tag(ewallet_confirm_path(@payment_request.id), method: :post) do %>
-            <button type="submit" class="btn btn-success w-100">Confirm Payment</button>
-          <% end %>
-        </div>
+<div class="row justify-content-center py-4">
+  <div class="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4">
+    <div class="text-center mb-4">
+      <div class="d-inline-flex align-items-center justify-content-center bg-info rounded-circle" style="width: 56px; height: 56px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="white" viewBox="0 0 16 16">
+          <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/>
+        </svg>
       </div>
     </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h5 class="card-title text-center mb-1">eWallet Payment</h5>
+        <p class="text-muted text-center small mb-4">Confirm your payment</p>
+
+        <div class="bg-light rounded p-3 mb-4">
+          <div class="text-center mb-3">
+            <span class="display-6 fw-bold"><%= number_to_currency(@payment_request.amount / 100.0, unit: @payment_request.currency + " ") %></span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted small">Channel</span>
+            <span class="fw-bold"><%= @payment_request.channel_code %></span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Reference</span>
+            <span class="fw-bold font-monospace small"><%= @payment_request.reference_id %></span>
+          </div>
+          <% if @payment_request.description.present? %>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <span class="text-muted small">Description</span>
+              <span class="small"><%= @payment_request.description %></span>
+            </div>
+          <% end %>
+        </div>
+
+        <%= form_tag(ewallet_confirm_path(@payment_request.id), method: :post) do %>
+          <button type="submit" class="btn btn-success w-100 py-2 fw-bold">Confirm Payment</button>
+        <% end %>
+      </div>
+    </div>
+
+    <p class="text-center text-muted mt-3 small">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" class="me-1">
+        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"/>
+      </svg>
+      Secured by Payment Gateway
+    </p>
   </div>
 </div>

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class ThreeDSecureController < ApplicationController
+  layout "external"
   skip_forgery_protection
 
   def challenge

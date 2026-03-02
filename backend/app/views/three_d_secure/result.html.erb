@@ -1,29 +1,36 @@
-<div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <% if @result == :success %>
-        <div class="card border-success">
-          <div class="card-header bg-success text-white">
-            <h4 class="mb-0">Authentication Successful</h4>
-          </div>
-          <div class="card-body text-center">
-            <p class="display-1 text-success">&#10003;</p>
-            <p>Your card has been verified successfully.</p>
-            <p class="text-muted small">You may close this window.</p>
-          </div>
+<div class="row justify-content-center py-4">
+  <div class="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4">
+    <% if @result == :success %>
+      <div class="text-center mb-4">
+        <div class="d-inline-flex align-items-center justify-content-center bg-success rounded-circle" style="width: 72px; height: 72px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="white" viewBox="0 0 16 16">
+            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0"/>
+          </svg>
         </div>
-      <% else %>
-        <div class="card border-danger">
-          <div class="card-header bg-danger text-white">
-            <h4 class="mb-0">Authentication Failed</h4>
-          </div>
-          <div class="card-body text-center">
-            <p class="display-1 text-danger">&#10007;</p>
-            <p>Verification failed. The OTP you entered is incorrect.</p>
-            <p class="text-muted small">Please try again or contact your bank.</p>
-          </div>
+      </div>
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4 text-center">
+          <h5 class="card-title text-success mb-2">Authentication Successful</h5>
+          <p class="text-muted mb-0">Your card has been verified successfully.</p>
         </div>
-      <% end %>
-    </div>
+      </div>
+    <% else %>
+      <div class="text-center mb-4">
+        <div class="d-inline-flex align-items-center justify-content-center bg-danger rounded-circle" style="width: 72px; height: 72px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="white" viewBox="0 0 16 16">
+            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4 text-center">
+          <h5 class="card-title text-danger mb-2">Authentication Failed</h5>
+          <p class="text-muted mb-3">The OTP you entered is incorrect.</p>
+          <p class="text-muted small mb-0">Please try again or contact your bank.</p>
+        </div>
+      </div>
+    <% end %>
+
+    <p class="text-center text-muted mt-3 small">You may close this window.</p>
   </div>
 </div>

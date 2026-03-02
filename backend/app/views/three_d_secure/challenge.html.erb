@@ -1,32 +1,55 @@
-<div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header bg-primary text-white">
-          <h4 class="mb-0">3D Secure Authentication</h4>
-        </div>
-        <div class="card-body">
-          <p class="text-muted">
-            Your bank requires additional verification for this transaction.
-          </p>
-          <p>
-            <strong>Card:</strong> <%= @payment_method.masked_card_number %><br>
-            <strong>Network:</strong> <%= @payment_method.card_network %>
-          </p>
-          <hr>
-          <p class="small text-muted">
-            Enter the OTP sent to your registered mobile number.
-            <br><em>(For testing, use: <code>1234</code>)</em>
-          </p>
-          <%= form_tag(three_d_secure_verify_path(@payment_method.id), method: :post) do %>
-            <div class="mb-3">
-              <label for="otp" class="form-label">One-Time Password (OTP)</label>
-              <input type="text" class="form-control" id="otp" name="otp" maxlength="4" placeholder="Enter OTP" required autofocus>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Verify</button>
-          <% end %>
-        </div>
+<div class="row justify-content-center py-4">
+  <div class="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4">
+    <div class="text-center mb-4">
+      <div class="d-inline-flex align-items-center justify-content-center bg-primary rounded-circle" style="width: 56px; height: 56px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="white" viewBox="0 0 16 16">
+          <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"/>
+        </svg>
       </div>
     </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h5 class="card-title text-center mb-1">3D Secure Authentication</h5>
+        <p class="text-muted text-center small mb-4">Your bank requires additional verification</p>
+
+        <div class="bg-light rounded p-3 mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted small">Card</span>
+            <span class="fw-bold font-monospace"><%= @payment_method.masked_card_number %></span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Network</span>
+            <span class="fw-bold"><%= @payment_method.card_network %></span>
+          </div>
+        </div>
+
+        <%= form_tag(three_d_secure_verify_path(@payment_method.id), method: :post) do %>
+          <div class="mb-3">
+            <label for="otp" class="form-label small fw-bold">One-Time Password (OTP)</label>
+            <input type="text" class="form-control form-control-lg text-center font-monospace letter-spacing-2"
+                   id="otp" name="otp" maxlength="4" placeholder="- - - -"
+                   inputmode="numeric" pattern="[0-9]*"
+                   required autofocus
+                   style="letter-spacing: 0.5em; font-size: 1.5rem;">
+            <div class="form-text text-center">
+              Enter the OTP sent to your registered mobile number
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Verify</button>
+        <% end %>
+
+        <p class="text-center mt-3 mb-0">
+          <small class="text-muted"><em>For testing, use: <code class="text-primary fw-bold">1234</code></em></small>
+        </p>
+      </div>
+    </div>
+
+    <p class="text-center text-muted mt-3 small">
+      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" class="me-1">
+        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2m3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2"/>
+      </svg>
+      Secured by Payment Gateway
+    </p>
   </div>
 </div>
