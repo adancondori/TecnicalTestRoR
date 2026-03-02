@@ -1,0 +1,253 @@
+<div class="py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">Payment Request Detail</h2>
+      <span class="text-muted"><code><%= @payment_request.id %></code></span>
+    </div>
+    <div class="d-flex gap-2">
+      <% if @payment_request.status == "AUTHORIZED" %>
+        <%= form_tag capture_merchant_payment_request_path(@merchant, @payment_request), method: :post, class: "d-inline" do %>
+          <%= submit_tag "Capture", class: "btn btn-success",
+                data: { confirm: "Are you sure you want to capture this payment?" } %>
+        <% end %>
+
+        <%= form_tag void_merchant_payment_request_path(@merchant, @payment_request), method: :post, class: "d-inline" do %>
+          <%= submit_tag "Void", class: "btn btn-outline-danger",
+                data: { confirm: "Are you sure you want to void this payment?" } %>
+        <% end %>
+      <% end %>
+
+      <%= link_to "Back to #{@merchant.business_name}", merchant_path(@merchant), class: "btn btn-outline-secondary" %>
+    </div>
+  </div>
+
+  <% flash.each do |key, message| %>
+    <div class="alert alert-<%= key == 'notice' ? 'success' : 'danger' %> alert-dismissible fade show" role="alert">
+      <%= message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% end %>
+
+  <div class="row">
+    <%# Main Info %>
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Transaction Details</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <dl>
+                <dt class="text-muted">Reference ID</dt>
+                <dd class="fw-bold"><%= @payment_request.reference_id %></dd>
+
+                <dt class="text-muted">Status</dt>
+                <dd><%= status_badge(@payment_request.status) %></dd>
+
+                <dt class="text-muted">Amount</dt>
+                <dd class="fs-4 fw-bold"><%= format_amount(@payment_request.amount, @payment_request.currency) %></dd>
+
+                <dt class="text-muted">Payment Type</dt>
+                <dd><%= payment_type_label(@payment_request.payment_type) %></dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <dl>
+                <dt class="text-muted">Capture Method</dt>
+                <dd><%= @payment_request.capture_method %></dd>
+
+                <dt class="text-muted">Captured Amount</dt>
+                <dd><%= format_amount(@payment_request.captured_amount, @payment_request.currency) %></dd>
+
+                <dt class="text-muted">Refunded Amount</dt>
+                <dd><%= format_amount(@payment_request.refunded_amount, @payment_request.currency) %></dd>
+
+                <dt class="text-muted">Created At</dt>
+                <dd><%= @payment_request.created_at.strftime("%Y-%m-%d %H:%M:%S UTC") %></dd>
+              </dl>
+            </div>
+          </div>
+
+          <% if @payment_request.description.present? %>
+            <hr>
+            <dl>
+              <dt class="text-muted">Description</dt>
+              <dd><%= @payment_request.description %></dd>
+            </dl>
+          <% end %>
+
+          <% if @payment_request.failure_code.present? %>
+            <hr>
+            <dl>
+              <dt class="text-muted">Failure Code</dt>
+              <dd><span class="badge bg-danger"><%= @payment_request.failure_code %></span></dd>
+            </dl>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Payment Method %>
+      <% if @payment_request.payment_method.present? %>
+        <% pm = @payment_request.payment_method %>
+        <div class="card mb-4">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Payment Method</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <dl>
+                  <dt class="text-muted">ID</dt>
+                  <dd><code><%= pm.id %></code></dd>
+
+                  <dt class="text-muted">Type</dt>
+                  <dd><%= pm.type_name %></dd>
+
+                  <dt class="text-muted">Status</dt>
+                  <dd><%= status_badge(pm.status) %></dd>
+                </dl>
+              </div>
+              <div class="col-md-6">
+                <% if pm.masked_card_number.present? %>
+                  <dl>
+                    <dt class="text-muted">Card Number</dt>
+                    <dd class="fw-bold"><%= pm.masked_card_number %></dd>
+
+                    <dt class="text-muted">Network</dt>
+                    <dd><%= pm.card_network %></dd>
+
+                    <dt class="text-muted">Expiry</dt>
+                    <dd><%= pm.expiry_month %>/<%= pm.expiry_year %></dd>
+
+                    <% if pm.cardholder_name.present? %>
+                      <dt class="text-muted">Cardholder</dt>
+                      <dd><%= pm.cardholder_name %></dd>
+                    <% end %>
+                  </dl>
+                <% end %>
+
+                <% if pm.channel_code.present? %>
+                  <dl>
+                    <dt class="text-muted">Channel</dt>
+                    <dd><%= pm.channel_code %></dd>
+                  </dl>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%# Refunds %>
+      <div class="card mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Refunds</h5>
+          <span class="badge bg-secondary"><%= @refunds.count %></span>
+        </div>
+        <% if @refunds.any? %>
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>ID</th>
+                  <th>Amount</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @refunds.each do |refund| %>
+                  <tr>
+                    <td><code class="small"><%= refund.id.truncate(16) %></code></td>
+                    <td class="fw-bold"><%= format_amount(refund.amount, @payment_request.currency) %></td>
+                    <td><%= refund.reason || "-" %></td>
+                    <td><%= status_badge(refund.status) %></td>
+                    <td><small class="text-muted"><%= refund.created_at.strftime("%Y-%m-%d %H:%M") %></small></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <div class="card-body text-center text-muted">
+            No refunds yet.
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Sidebar %>
+    <div class="col-md-4">
+      <%# Refund Form %>
+      <% if %w[SUCCEEDED CAPTURED].include?(@payment_request.status) %>
+        <% max_refundable = @payment_request.captured_amount - @payment_request.refunded_amount %>
+        <% if max_refundable > 0 %>
+          <div class="card mb-4 border-warning">
+            <div class="card-header bg-warning bg-opacity-10">
+              <h5 class="mb-0">Create Refund</h5>
+            </div>
+            <div class="card-body">
+              <%= form_tag merchant_payment_request_refunds_path(@merchant, @payment_request), method: :post do %>
+                <div class="mb-3">
+                  <label for="amount" class="form-label">Amount (cents)</label>
+                  <%= number_field_tag :amount, max_refundable,
+                        min: 1, max: max_refundable,
+                        class: "form-control", required: true %>
+                  <div class="form-text">Max refundable: <%= format_amount(max_refundable, @payment_request.currency) %></div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="reason" class="form-label">Reason (optional)</label>
+                  <%= text_field_tag :reason, nil, class: "form-control", placeholder: "e.g. Customer request" %>
+                </div>
+
+                <%= submit_tag "Process Refund", class: "btn btn-warning w-100",
+                      data: { confirm: "Are you sure you want to process this refund?" } %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+
+      <%# Metadata %>
+      <% if @payment_request.metadata.present? %>
+        <div class="card mb-4">
+          <div class="card-header bg-white">
+            <h5 class="mb-0">Metadata</h5>
+          </div>
+          <div class="card-body">
+            <pre class="mb-0 small"><%= JSON.pretty_generate(@payment_request.metadata) %></pre>
+          </div>
+        </div>
+      <% end %>
+
+      <%# IDs & References %>
+      <div class="card mb-4">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">References</h5>
+        </div>
+        <div class="card-body">
+          <dl class="mb-0">
+            <dt class="text-muted small">Payment Request ID</dt>
+            <dd><code class="small"><%= @payment_request.id %></code></dd>
+
+            <% if @payment_request.payment_method_id.present? %>
+              <dt class="text-muted small">Payment Method ID</dt>
+              <dd><code class="small"><%= @payment_request.payment_method_id %></code></dd>
+            <% end %>
+
+            <dt class="text-muted small">Merchant ID</dt>
+            <dd><code class="small"><%= @payment_request.merchant_id %></code></dd>
+
+            <% if @payment_request.request_id.present? %>
+              <dt class="text-muted small">Idempotency Key</dt>
+              <dd><code class="small"><%= @payment_request.request_id %></code></dd>
+            <% end %>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

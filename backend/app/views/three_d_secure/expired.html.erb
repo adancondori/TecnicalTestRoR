@@ -1,0 +1,22 @@
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card border-warning">
+        <div class="card-header bg-warning text-dark">
+          <h4 class="mb-0">Challenge Already Processed</h4>
+        </div>
+        <div class="card-body text-center">
+          <p class="display-1 text-warning">&#9888;</p>
+          <p>This 3D Secure challenge has already been completed.</p>
+          <% if @existing %>
+            <p class="text-muted small">
+              Status: <strong><%= @existing.status %></strong>
+              &mdash; <%= @existing.updated_at.strftime("%Y-%m-%d %H:%M:%S UTC") %>
+            </p>
+          <% end %>
+          <p class="text-muted small">You may close this window.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

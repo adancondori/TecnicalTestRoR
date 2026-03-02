@@ -1,0 +1,32 @@
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">3D Secure Authentication</h4>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">
+            Your bank requires additional verification for this transaction.
+          </p>
+          <p>
+            <strong>Card:</strong> <%= @payment_method.masked_card_number %><br>
+            <strong>Network:</strong> <%= @payment_method.card_network %>
+          </p>
+          <hr>
+          <p class="small text-muted">
+            Enter the OTP sent to your registered mobile number.
+            <br><em>(For testing, use: <code>1234</code>)</em>
+          </p>
+          <%= form_tag(three_d_secure_verify_path(@payment_method.id), method: :post) do %>
+            <div class="mb-3">
+              <label for="otp" class="form-label">One-Time Password (OTP)</label>
+              <input type="text" class="form-control" id="otp" name="otp" maxlength="4" placeholder="Enter OTP" required autofocus>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Verify</button>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

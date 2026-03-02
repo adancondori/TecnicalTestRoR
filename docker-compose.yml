@@ -20,9 +20,11 @@ services:
     build:
       context: backend
       dockerfile: dev.dockerfile
+    stdin_open: true
+    tty: true
     volumes:
       - ./backend:/app
-    ports: 
+    ports:
        - "3001:3000"
     depends_on:
       - db
@@ -31,7 +33,14 @@ services:
     networks:
       - networks_default
     environment:
-      DATABASE_URL: mysql2://root:password@db/technical_development
+      DEVELOPMENT_DATABASE_USERNAME: root
+      DEVELOPMENT_DATABASE_PASSWORD: password
+      DEVELOPMENT_DATABASE_NAME: technical_development
+      DEVELOPMENT_DATABASE_HOST: db
+      TEST_DATABASE_USERNAME: root
+      TEST_DATABASE_PASSWORD: password
+      TEST_DATABASE_NAME: technical_test
+      TEST_DATABASE_HOST: db
 
   frontend:
     build: 

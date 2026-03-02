@@ -17,6 +17,9 @@ gem "mysql2"
 gem "figaro"
 gem "rack-cors", require: "rack/cors"
 
+gem "rswag-api"
+gem "rswag-ui"
+
 gem "bootstrap", "~> 5.2.0"
 gem "sassc-rails"
 gem "cssbundling-rails"
@@ -27,7 +30,9 @@ group :development, :test do
   gem "factory_bot_rails"
   gem "faker"
   gem "pry"
+  gem "pry-byebug"
   gem "rspec-rails"
+  gem "rswag-specs"
   gem "rubocop", require: false
 end
 
@@ -42,4 +47,6 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
   gem "webdrivers"
+  gem "webmock"
+  gem "shoulda-matchers"
 end

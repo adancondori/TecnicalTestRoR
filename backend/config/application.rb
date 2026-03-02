@@ -19,10 +19,13 @@ module TecnicalProject
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
 
+    config.active_job.queue_adapter = :async
+
     config.autoload_paths += %W(#{config.root}/extras)
     config.autoload_paths += %W(#{config.root}/app/lib)
     config.autoload_paths += %W(#{config.root}/app/models/ckeditor)
     config.autoload_paths += %W(#{config.root}/app/models/directory)
+    config.autoload_paths += %W(#{config.root}/app/errors)
     # Configuración de Middlewares de la aplicación
     config.middleware.insert_before 0, Rack::Cors do
       allow do

@@ -1,0 +1,1191 @@
+{
+  "info": {
+    "_postman_id": "pg-collection-001",
+    "name": "Payment Gateway API",
+    "description": "A RESTful payment gateway provider supporting cards, e-wallets, and QR code payments.\n\n## Authentication\nHTTP Basic Auth using `api_key` as username and `api_secret` as password.\n\n## Test Merchants\n| Merchant | api_key | api_secret | Status |\n|----------|---------|------------|--------|\n| Acme Corp | pk_test_acme001 | sk_test_acme001_secret | ACTIVE |\n| Globex | pk_test_globex002 | sk_test_globex002_secret | ACTIVE |\n| Suspended Inc | pk_test_susp005 | sk_test_susp005_secret | SUSPENDED |\n\n## Test Cards\n| Card Number | Behavior |\n|-------------|----------|\n| 4000000000001000 | Visa, no 3DS, always succeeds |\n| 4000000000001091 | Visa, requires 3DS (OTP: 1234) |\n| 4000000000001109 | Visa, 3DS failure |\n| 5200000000001005 | Mastercard, no 3DS |\n| 5200000000001096 | Mastercard, requires 3DS |\n| 4000000000001234 | Invalid Luhn checksum |\n\n## Flow Examples\n1. **Auto-capture card**: POST payment_request with card + capture_method=AUTOMATIC -> SUCCEEDED\n2. **Manual capture**: POST with capture_method=MANUAL -> AUTHORIZED, then POST capture -> SUCCEEDED\n3. **Void**: POST with MANUAL -> AUTHORIZED, then POST void -> VOIDED\n4. **3DS flow**: Use card 4000000000001091 -> REQUIRES_ACTION, complete 3DS challenge with OTP 1234\n5. **E-wallet**: POST with ewallet.channel_code -> REQUIRES_ACTION (ewallet_url)\n6. **QR code**: POST with qr_code.channel_code -> REQUIRES_ACTION (qr_string), simulate scan\n7. **Refund**: After SUCCEEDED payment, POST refund",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      {
+        "key": "username",
+        "value": "{{api_key}}",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "{{api_secret}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [],
+  "item": [
+    {
+      "name": "Payment Methods",
+      "description": "Tokenize and manage payment methods (cards, e-wallets, QR codes).",
+      "item": [
+        {
+          "name": "Create Payment Method (Card - No 3DS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('payment_method_id', jsonData.data.id);",
+                  "    pm.test('Payment method created', function() {",
+                  "        pm.expect(jsonData.data.id).to.match(/^pm-/);",
+                  "        pm.expect(jsonData.data.status).to.eql('ACTIVE');",
+                  "        pm.expect(jsonData.data.type).to.eql('CARD');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-ID",
+                "value": "{{$guid}}",
+                "description": "Idempotency key"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CARD\",\n  \"reusability\": \"ONE_TIME_USE\",\n  \"card\": {\n    \"card_number\": \"4000000000001000\",\n    \"expiry_month\": \"12\",\n    \"expiry_year\": \"2028\",\n    \"cvv\": \"123\",\n    \"cardholder_name\": \"John Doe\",\n    \"cardholder_email\": \"john@example.com\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_methods",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_methods"]
+            },
+            "description": "Tokenizes a card that does NOT require 3D Secure. Returns status=ACTIVE immediately."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment Method (Card - Requires 3DS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('payment_method_id', jsonData.data.id);",
+                  "    if (jsonData.data.actions && jsonData.data.actions.length > 0) {",
+                  "        pm.environment.set('three_ds_challenge_id', jsonData.data.id);",
+                  "    }",
+                  "    pm.test('Payment method requires 3DS', function() {",
+                  "        pm.expect(jsonData.data.status).to.eql('PENDING_AUTHENTICATION');",
+                  "        pm.expect(jsonData.data.actions).to.be.an('array').that.is.not.empty;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-ID",
+                "value": "{{$guid}}",
+                "description": "Idempotency key"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CARD\",\n  \"reusability\": \"ONE_TIME_USE\",\n  \"card\": {\n    \"card_number\": \"4000000000001091\",\n    \"expiry_month\": \"12\",\n    \"expiry_year\": \"2028\",\n    \"cvv\": \"456\",\n    \"cardholder_name\": \"Jane Smith\",\n    \"cardholder_email\": \"jane@example.com\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_methods",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_methods"]
+            },
+            "description": "Tokenizes a card that requires 3D Secure authentication. Returns status=PENDING_AUTHENTICATION with an action URL for 3DS challenge.\n\nUse OTP `1234` to complete the 3DS challenge."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment Method (Card - Multiple Use)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('payment_method_id', jsonData.data.id);",
+                  "    pm.test('Reusable payment method created', function() {",
+                  "        pm.expect(jsonData.data.reusability).to.eql('MULTIPLE_USE');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CARD\",\n  \"reusability\": \"MULTIPLE_USE\",\n  \"card\": {\n    \"card_number\": \"5200000000001005\",\n    \"expiry_month\": \"06\",\n    \"expiry_year\": \"2029\",\n    \"cvv\": \"789\",\n    \"cardholder_name\": \"Bob Wilson\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_methods",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_methods"]
+            },
+            "description": "Creates a reusable (MULTIPLE_USE) Mastercard payment method. Can be referenced by ID in future payment requests."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment Method (Invalid Card - Luhn Fail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CARD\",\n  \"reusability\": \"ONE_TIME_USE\",\n  \"card\": {\n    \"card_number\": \"4000000000001234\",\n    \"expiry_month\": \"12\",\n    \"expiry_year\": \"2028\",\n    \"cvv\": \"123\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_methods",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_methods"]
+            },
+            "description": "Attempts to create a payment method with an invalid card number (fails Luhn checksum). Expects 422 Validation Error."
+          },
+          "response": []
+        },
+        {
+          "name": "List Payment Methods",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns array of payment methods', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_methods",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_methods"]
+            },
+            "description": "Returns all payment methods for the authenticated merchant."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment Method",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_methods/{{payment_method_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_methods", "{{payment_method_id}}"]
+            },
+            "description": "Returns a single payment method by ID. Uses the `payment_method_id` variable auto-set by create requests."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payment Requests",
+      "description": "Create and manage payment requests (charges). Supports card, e-wallet, and QR code payments with auto or manual capture.",
+      "item": [
+        {
+          "name": "Create Payment (Card - Auto Capture)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('payment_request_id', jsonData.data.id);",
+                  "    pm.test('Payment succeeded with auto-capture', function() {",
+                  "        pm.expect(jsonData.data.id).to.match(/^pr-/);",
+                  "        pm.expect(jsonData.data.status).to.eql('SUCCEEDED');",
+                  "        pm.expect(jsonData.data.captured_amount).to.eql(50000);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-ID",
+                "value": "{{$guid}}",
+                "description": "Idempotency key"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference_id\": \"order-{{$timestamp}}\",\n  \"amount\": 50000,\n  \"currency\": \"USD\",\n  \"capture_method\": \"AUTOMATIC\",\n  \"description\": \"Test auto-capture payment\",\n  \"card\": {\n    \"card_number\": \"4000000000001000\",\n    \"expiry_month\": \"12\",\n    \"expiry_year\": \"2028\",\n    \"cvv\": \"123\",\n    \"cardholder_name\": \"John Doe\"\n  },\n  \"metadata\": {\n    \"order_id\": \"12345\",\n    \"customer_email\": \"john@example.com\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests"]
+            },
+            "description": "Creates a payment with inline card tokenization and automatic capture. The payment goes directly to SUCCEEDED status.\n\nAmount is in cents: 50000 = $500.00"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment (Card - Manual Capture)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('payment_request_id', jsonData.data.id);",
+                  "    pm.test('Payment authorized (manual capture)', function() {",
+                  "        pm.expect(jsonData.data.status).to.eql('AUTHORIZED');",
+                  "        pm.expect(jsonData.data.capture_method).to.eql('MANUAL');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-ID",
+                "value": "{{$guid}}",
+                "description": "Idempotency key"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference_id\": \"order-manual-{{$timestamp}}\",\n  \"amount\": 25000,\n  \"currency\": \"USD\",\n  \"capture_method\": \"MANUAL\",\n  \"description\": \"Test manual-capture payment\",\n  \"card\": {\n    \"card_number\": \"4000000000001000\",\n    \"expiry_month\": \"12\",\n    \"expiry_year\": \"2028\",\n    \"cvv\": \"123\",\n    \"cardholder_name\": \"John Doe\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests"]
+            },
+            "description": "Creates a payment with MANUAL capture. The payment goes to AUTHORIZED status and must be captured or voided separately.\n\nAfter this, use **Capture Payment** or **Void Payment** to complete the flow."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment (Card - 3DS Required)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('payment_request_id', jsonData.data.id);",
+                  "    pm.test('Payment requires 3DS action', function() {",
+                  "        pm.expect(jsonData.data.status).to.eql('REQUIRES_ACTION');",
+                  "        pm.expect(jsonData.data.actions).to.be.an('array').that.is.not.empty;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference_id\": \"order-3ds-{{$timestamp}}\",\n  \"amount\": 75000,\n  \"currency\": \"USD\",\n  \"capture_method\": \"AUTOMATIC\",\n  \"description\": \"Test 3DS payment\",\n  \"card\": {\n    \"card_number\": \"4000000000001091\",\n    \"expiry_month\": \"12\",\n    \"expiry_year\": \"2028\",\n    \"cvv\": \"456\",\n    \"cardholder_name\": \"Jane Smith\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests"]
+            },
+            "description": "Creates a payment with a card that requires 3D Secure verification. Returns REQUIRES_ACTION with a 3DS challenge URL.\n\nTo complete:\n1. Open the `actions[0].url` in a browser (append to base_url)\n2. Enter OTP: `1234`\n3. Payment will transition to SUCCEEDED"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment (E-Wallet - OVO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('payment_request_id', jsonData.data.id);",
+                  "    pm.test('E-wallet payment created', function() {",
+                  "        pm.expect(jsonData.data.status).to.eql('REQUIRES_ACTION');",
+                  "        pm.expect(jsonData.data.payment_type).to.eql('EWALLET');",
+                  "        pm.expect(jsonData.data.ewallet_url).to.be.a('string');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference_id\": \"order-ewallet-{{$timestamp}}\",\n  \"amount\": 30000,\n  \"currency\": \"USD\",\n  \"capture_method\": \"AUTOMATIC\",\n  \"description\": \"Test e-wallet payment (OVO)\",\n  \"ewallet\": {\n    \"channel_code\": \"OVO\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests"]
+            },
+            "description": "Creates an e-wallet payment via OVO channel. Returns REQUIRES_ACTION with an `ewallet_url` where the customer completes payment.\n\nOther supported channels: DANA, GOPAY, SHOPEEPAY"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment (QR Code - QRIS)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('payment_request_id', jsonData.data.id);",
+                  "    pm.test('QR payment created', function() {",
+                  "        pm.expect(jsonData.data.status).to.eql('REQUIRES_ACTION');",
+                  "        pm.expect(jsonData.data.payment_type).to.eql('QR_CODE');",
+                  "        pm.expect(jsonData.data.qr_string).to.be.a('string');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference_id\": \"order-qr-{{$timestamp}}\",\n  \"amount\": 15000,\n  \"currency\": \"USD\",\n  \"capture_method\": \"AUTOMATIC\",\n  \"description\": \"Test QR code payment (QRIS)\",\n  \"qr_code\": {\n    \"channel_code\": \"QRIS\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests"]
+            },
+            "description": "Creates a QR code payment via QRIS channel. Returns REQUIRES_ACTION with a `qr_string` to display.\n\nUse **Simulate QR Payment** to simulate the customer scanning the QR code."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Payment (Using Existing Payment Method)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('payment_request_id', jsonData.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference_id\": \"order-pm-{{$timestamp}}\",\n  \"amount\": 20000,\n  \"currency\": \"USD\",\n  \"capture_method\": \"AUTOMATIC\",\n  \"description\": \"Payment using existing payment method\",\n  \"payment_method_id\": \"{{payment_method_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests"]
+            },
+            "description": "Creates a payment using a previously tokenized payment method (referenced by `payment_method_id`).\n\nFirst create a MULTIPLE_USE payment method, then use its ID here."
+          },
+          "response": []
+        },
+        {
+          "name": "List Payment Requests",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns array of payments', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests"]
+            },
+            "description": "Returns all payment requests for the authenticated merchant."
+          },
+          "response": []
+        },
+        {
+          "name": "List Payment Requests (Filtered by Status)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests?status=SUCCEEDED",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "SUCCEEDED",
+                  "description": "Filter: PENDING, REQUIRES_ACTION, AUTHORIZED, CAPTURED, SUCCEEDED, FAILED, VOIDED, REFUNDED"
+                }
+              ]
+            },
+            "description": "Returns payment requests filtered by status. Supports: PENDING, REQUIRES_ACTION, AUTHORIZED, CAPTURED, SUCCEEDED, FAILED, VOIDED, REFUNDED."
+          },
+          "response": []
+        },
+        {
+          "name": "List Payment Requests (Filtered by Date Range)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests?from_date=2024-01-01&to_date=2030-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests"],
+              "query": [
+                {
+                  "key": "from_date",
+                  "value": "2024-01-01",
+                  "description": "ISO8601 date"
+                },
+                {
+                  "key": "to_date",
+                  "value": "2030-12-31",
+                  "description": "ISO8601 date"
+                }
+              ]
+            },
+            "description": "Returns payment requests filtered by date range. Also supports `reference_id` query parameter."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment Request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests/{{payment_request_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests", "{{payment_request_id}}"]
+            },
+            "description": "Returns a single payment request by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Capture Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.test('Payment captured', function() {",
+                  "        pm.expect(jsonData.data.status).to.eql('SUCCEEDED');",
+                  "        pm.expect(jsonData.data.captured_amount).to.be.above(0);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 25000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests/{{payment_request_id}}/capture",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests", "{{payment_request_id}}", "capture"]
+            },
+            "description": "Captures a previously AUTHORIZED payment. Only works for payments with capture_method=MANUAL and status=AUTHORIZED.\n\n**Flow**: First create a payment with `capture_method: MANUAL`, then capture it.\n\nOptionally specify a partial `amount` (must be <= authorized amount). Omit amount to capture full authorization."
+          },
+          "response": []
+        },
+        {
+          "name": "Void Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.test('Payment voided', function() {",
+                  "        pm.expect(jsonData.data.status).to.eql('VOIDED');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests/{{payment_request_id}}/void",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests", "{{payment_request_id}}", "void"]
+            },
+            "description": "Voids a previously AUTHORIZED payment. Only works for payments with status=AUTHORIZED.\n\n**Flow**: First create a payment with `capture_method: MANUAL`, then void it instead of capturing."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Refunds",
+      "description": "Create and manage refunds for succeeded payments.",
+      "item": [
+        {
+          "name": "Create Refund (Full)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('refund_id', jsonData.data.id);",
+                  "    pm.test('Refund created', function() {",
+                  "        pm.expect(jsonData.data.id).to.match(/^rf-/);",
+                  "        pm.expect(jsonData.data.status).to.eql('SUCCEEDED');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-ID",
+                "value": "{{$guid}}",
+                "description": "Idempotency key"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50000,\n  \"reason\": \"Customer requested full refund\",\n  \"reference_id\": \"refund-{{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests/{{payment_request_id}}/refunds",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests", "{{payment_request_id}}", "refunds"]
+            },
+            "description": "Creates a full refund for a SUCCEEDED payment.\n\n**Prerequisites**: The `payment_request_id` must reference a SUCCEEDED payment. First run **Create Payment (Card - Auto Capture)** to get a succeeded payment.\n\nAmount must be <= remaining refundable amount."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Refund (Partial)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('refund_id', jsonData.data.id);",
+                  "    pm.test('Partial refund created', function() {",
+                  "        pm.expect(jsonData.data.amount).to.eql(10000);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10000,\n  \"reason\": \"Partial refund - item returned\",\n  \"reference_id\": \"partial-refund-{{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_requests/{{payment_request_id}}/refunds",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_requests", "{{payment_request_id}}", "refunds"]
+            },
+            "description": "Creates a partial refund ($100.00 out of a larger payment). Multiple partial refunds can be created until the total equals the original payment amount."
+          },
+          "response": []
+        },
+        {
+          "name": "List Refunds",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns array of refunds', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/refunds",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "refunds"]
+            },
+            "description": "Returns all refunds for the authenticated merchant across all payment requests."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Refund",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/refunds/{{refund_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "refunds", "{{refund_id}}"]
+            },
+            "description": "Returns a single refund by ID."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "QR Payments",
+      "description": "Simulate QR code payment completion (test-only endpoint).",
+      "item": [
+        {
+          "name": "Simulate QR Payment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.test('QR payment succeeded', function() {",
+                  "        pm.expect(jsonData.data.status).to.eql('SUCCEEDED');",
+                  "        pm.expect(jsonData.data.payment_type).to.eql('QR_CODE');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/qr_payments/{{payment_request_id}}/simulate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "qr_payments", "{{payment_request_id}}", "simulate"]
+            },
+            "description": "Simulates a customer scanning and completing a QR code payment.\n\n**Flow**:\n1. Create a QR code payment request (see **Create Payment - QR Code**)\n2. Copy the `payment_request_id`\n3. Call this endpoint to simulate the scan\n4. Payment transitions from REQUIRES_ACTION to SUCCEEDED"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth Tests",
+      "description": "Test authentication scenarios.",
+      "item": [
+        {
+          "name": "Unauthorized Request (Invalid Credentials)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 401 unauthorized', function() {",
+                  "    pm.expect(pm.response.code).to.eql(401);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error.code).to.eql('AUTHENTICATION_FAILED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "invalid_key",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "invalid_secret",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_methods",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_methods"]
+            },
+            "description": "Tests that invalid API credentials return 401 with AUTHENTICATION_FAILED error code."
+          },
+          "response": []
+        },
+        {
+          "name": "Suspended Merchant Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 403 forbidden', function() {",
+                  "    pm.expect(pm.response.code).to.eql(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error.code).to.eql('MERCHANT_SUSPENDED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "pk_test_susp005",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "sk_test_susp005_secret",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_methods",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_methods"]
+            },
+            "description": "Tests that a suspended merchant receives 403 Forbidden with MERCHANT_SUSPENDED error code."
+          },
+          "response": []
+        },
+        {
+          "name": "No Auth Header",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 401', function() {",
+                  "    pm.expect(pm.response.code).to.eql(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payment_methods",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payment_methods"]
+            },
+            "description": "Tests that a request without any authentication header returns 401."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Complete Flows",
+      "description": "Step-by-step flows to test full payment lifecycles. Run requests in order within each folder.",
+      "item": [
+        {
+          "name": "Flow 1: Card Auto-Capture + Refund",
+          "description": "1. Create auto-capture payment\n2. Verify SUCCEEDED\n3. Create partial refund\n4. Verify refund",
+          "item": [
+            {
+              "name": "1. Create Auto-Capture Payment",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var jsonData = pm.response.json();",
+                      "pm.environment.set('flow1_payment_id', jsonData.data.id);",
+                      "pm.test('Status is SUCCEEDED', function() {",
+                      "    pm.expect(jsonData.data.status).to.eql('SUCCEEDED');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reference_id\": \"flow1-{{$timestamp}}\",\n  \"amount\": 100000,\n  \"currency\": \"USD\",\n  \"capture_method\": \"AUTOMATIC\",\n  \"card\": {\n    \"card_number\": \"4000000000001000\",\n    \"expiry_month\": \"12\",\n    \"expiry_year\": \"2028\",\n    \"cvv\": \"123\",\n    \"cardholder_name\": \"Flow Test\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/payment_requests",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "payment_requests"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Create Partial Refund ($300)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var jsonData = pm.response.json();",
+                      "pm.environment.set('flow1_refund_id', jsonData.data.id);",
+                      "pm.test('Refund succeeded', function() {",
+                      "    pm.expect(jsonData.data.status).to.eql('SUCCEEDED');",
+                      "    pm.expect(jsonData.data.amount).to.eql(30000);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 30000,\n  \"reason\": \"Partial refund - flow test\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/payment_requests/{{flow1_payment_id}}/refunds",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "payment_requests", "{{flow1_payment_id}}", "refunds"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Verify Payment Shows Refund",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var jsonData = pm.response.json();",
+                      "pm.test('Refunded amount updated', function() {",
+                      "    pm.expect(jsonData.data.refunded_amount).to.eql(30000);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/payment_requests/{{flow1_payment_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "payment_requests", "{{flow1_payment_id}}"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Flow 2: Manual Capture + Void",
+          "description": "1. Create manual-capture payment (AUTHORIZED)\n2. Void the authorization",
+          "item": [
+            {
+              "name": "1. Create Manual-Capture Payment",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var jsonData = pm.response.json();",
+                      "pm.environment.set('flow2_payment_id', jsonData.data.id);",
+                      "pm.test('Status is AUTHORIZED', function() {",
+                      "    pm.expect(jsonData.data.status).to.eql('AUTHORIZED');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reference_id\": \"flow2-{{$timestamp}}\",\n  \"amount\": 45000,\n  \"currency\": \"USD\",\n  \"capture_method\": \"MANUAL\",\n  \"card\": {\n    \"card_number\": \"4000000000001000\",\n    \"expiry_month\": \"12\",\n    \"expiry_year\": \"2028\",\n    \"cvv\": \"123\",\n    \"cardholder_name\": \"Void Test\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/payment_requests",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "payment_requests"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Void the Authorization",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var jsonData = pm.response.json();",
+                      "pm.test('Status is VOIDED', function() {",
+                      "    pm.expect(jsonData.data.status).to.eql('VOIDED');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/payment_requests/{{flow2_payment_id}}/void",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "payment_requests", "{{flow2_payment_id}}", "void"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Flow 3: QR Code Payment",
+          "description": "1. Create QR code payment (REQUIRES_ACTION)\n2. Simulate QR scan (SUCCEEDED)",
+          "item": [
+            {
+              "name": "1. Create QR Code Payment",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var jsonData = pm.response.json();",
+                      "pm.environment.set('flow3_payment_id', jsonData.data.id);",
+                      "pm.test('QR payment requires action', function() {",
+                      "    pm.expect(jsonData.data.status).to.eql('REQUIRES_ACTION');",
+                      "    pm.expect(jsonData.data.qr_string).to.be.a('string');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reference_id\": \"flow3-qr-{{$timestamp}}\",\n  \"amount\": 25000,\n  \"currency\": \"USD\",\n  \"capture_method\": \"AUTOMATIC\",\n  \"qr_code\": {\n    \"channel_code\": \"QRIS\"\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/v1/payment_requests",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "payment_requests"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Simulate QR Scan",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var jsonData = pm.response.json();",
+                      "pm.test('QR payment succeeded', function() {",
+                      "    pm.expect(jsonData.data.status).to.eql('SUCCEEDED');",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/api/v1/qr_payments/{{flow3_payment_id}}/simulate",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "v1", "qr_payments", "{{flow3_payment_id}}", "simulate"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

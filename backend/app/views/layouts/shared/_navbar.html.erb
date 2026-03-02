@@ -7,7 +7,10 @@
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="<%= root_path %>">Home</a>
+          <a class="nav-link <%= 'active' unless controller_name.in?(%w[merchants payment_requests refunds]) %>" href="<%= root_path %>">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <%= 'active' if controller_name.in?(%w[merchants payment_requests refunds]) %>" href="<%= merchants_path %>">Merchants</a>
         </li>
       </ul>
     </div>

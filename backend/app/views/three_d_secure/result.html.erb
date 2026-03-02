@@ -1,0 +1,29 @@
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <% if @result == :success %>
+        <div class="card border-success">
+          <div class="card-header bg-success text-white">
+            <h4 class="mb-0">Authentication Successful</h4>
+          </div>
+          <div class="card-body text-center">
+            <p class="display-1 text-success">&#10003;</p>
+            <p>Your card has been verified successfully.</p>
+            <p class="text-muted small">You may close this window.</p>
+          </div>
+        </div>
+      <% else %>
+        <div class="card border-danger">
+          <div class="card-header bg-danger text-white">
+            <h4 class="mb-0">Authentication Failed</h4>
+          </div>
+          <div class="card-body text-center">
+            <p class="display-1 text-danger">&#10007;</p>
+            <p>Verification failed. The OTP you entered is incorrect.</p>
+            <p class="text-muted small">Please try again or contact your bank.</p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

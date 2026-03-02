@@ -1,0 +1,25 @@
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h4 class="mb-0">eWallet Payment</h4>
+        </div>
+        <div class="card-body">
+          <p class="text-muted">Simulated eWallet payment page</p>
+          <hr>
+          <p><strong>Amount:</strong> <%= number_to_currency(@payment_request.amount / 100.0, unit: @payment_request.currency + " ") %></p>
+          <p><strong>Channel:</strong> <%= @payment_request.channel_code %></p>
+          <p><strong>Reference:</strong> <%= @payment_request.reference_id %></p>
+          <% if @payment_request.description.present? %>
+            <p><strong>Description:</strong> <%= @payment_request.description %></p>
+          <% end %>
+          <hr>
+          <%= form_tag(ewallet_confirm_path(@payment_request.id), method: :post) do %>
+            <button type="submit" class="btn btn-success w-100">Confirm Payment</button>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

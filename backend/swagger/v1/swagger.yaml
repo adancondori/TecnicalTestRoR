@@ -1,0 +1,816 @@
+---
+openapi: 3.0.1
+info:
+  title: Payment Gateway API
+  version: v1
+  description: A RESTful payment gateway provider supporting cards, e-wallets, and
+    QR code payments.
+paths:
+  "/api/v1/payment_methods":
+    post:
+      summary: Tokenize a payment method
+      tags:
+      - Payment Methods
+      operationId: createPaymentMethod
+      security:
+      - basic_auth: []
+      description: Creates a new payment method by tokenizing card details, e-wallet,
+        or QR code.
+      parameters:
+      - name: X-Request-ID
+        in: header
+        required: false
+        description: Idempotency key to prevent duplicate requests
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Payment method created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/payment_method"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/error"
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum:
+                  - CARD
+                  - EWALLET
+                  - QR_CODE
+                  description: Payment method type
+                reusability:
+                  type: string
+                  enum:
+                  - ONE_TIME_USE
+                  - MULTIPLE_USE
+                card:
+                  type: object
+                  properties:
+                    card_number:
+                      type: string
+                      example: '4000000000001000'
+                    expiry_month:
+                      type: string
+                      example: '12'
+                    expiry_year:
+                      type: string
+                      example: '25'
+                    cvv:
+                      type: string
+                      example: '123'
+                    cardholder_name:
+                      type: string
+                      example: John Doe
+                    cardholder_email:
+                      type: string
+                      example: john@example.com
+                  required:
+                  - card_number
+                  - expiry_month
+                  - expiry_year
+                  - cvv
+              required:
+              - type
+              - reusability
+    get:
+      summary: List payment methods
+      tags:
+      - Payment Methods
+      operationId: listPaymentMethods
+      security:
+      - basic_auth: []
+      description: Returns all payment methods belonging to the authenticated merchant.
+      responses:
+        '200':
+          description: List of payment methods
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/payment_method"
+  "/api/v1/payment_methods/{id}":
+    get:
+      summary: Get a payment method
+      tags:
+      - Payment Methods
+      operationId: getPaymentMethod
+      security:
+      - basic_auth: []
+      description: Returns a single payment method by ID.
+      parameters:
+      - name: id
+        in: path
+        description: Payment method ID (e.g., pm-abc123)
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Payment method found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/payment_method"
+        '404':
+          description: Payment method not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/error"
+  "/api/v1/payment_requests":
+    post:
+      summary: Create a payment request
+      tags:
+      - Payment Requests
+      operationId: createPaymentRequest
+      security:
+      - basic_auth: []
+      description: Creates a new payment. Supports card (with inline tokenization
+        or existing payment_method_id), e-wallet, and QR code payments.
+      parameters:
+      - name: X-Request-ID
+        in: header
+        required: false
+        description: Idempotency key to prevent duplicate requests
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Payment request created (auto-capture card)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/payment_request"
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment_method_id:
+                  type: string
+                  description: Existing payment method ID (alternative to inline card/ewallet/qr_code)
+                reference_id:
+                  type: string
+                  description: Unique merchant reference
+                  example: order-001
+                amount:
+                  type: integer
+                  description: Amount in cents
+                  example: 10000
+                currency:
+                  type: string
+                  example: USD
+                capture_method:
+                  type: string
+                  enum:
+                  - AUTOMATIC
+                  - MANUAL
+                description:
+                  type: string
+                callback_url:
+                  type: string
+                  description: Webhook URL for payment events
+                success_return_url:
+                  type: string
+                failure_return_url:
+                  type: string
+                metadata:
+                  type: object
+                card:
+                  type: object
+                  description: Inline card tokenization (alternative to payment_method_id)
+                  properties:
+                    card_number:
+                      type: string
+                      example: '4000000000001000'
+                    expiry_month:
+                      type: string
+                      example: '12'
+                    expiry_year:
+                      type: string
+                      example: '25'
+                    cvv:
+                      type: string
+                      example: '123'
+                    cardholder_name:
+                      type: string
+                    cardholder_email:
+                      type: string
+                  required:
+                  - card_number
+                  - expiry_month
+                  - expiry_year
+                  - cvv
+                ewallet:
+                  type: object
+                  description: E-wallet payment details
+                  properties:
+                    channel_code:
+                      type: string
+                      example: OVO
+                  required:
+                  - channel_code
+                qr_code:
+                  type: object
+                  description: QR code payment details
+                  properties:
+                    channel_code:
+                      type: string
+                      example: QRIS
+                  required:
+                  - channel_code
+              required:
+              - reference_id
+              - amount
+              - currency
+              - capture_method
+    get:
+      summary: List payment requests
+      tags:
+      - Payment Requests
+      operationId: listPaymentRequests
+      security:
+      - basic_auth: []
+      description: Returns payment requests for the authenticated merchant. Supports
+        filtering by status, reference_id, and date range.
+      parameters:
+      - name: status
+        in: query
+        required: false
+        description: "Filter by status:\n * `PENDING` \n * `REQUIRES_ACTION` \n *
+          `AUTHORIZED` \n * `CAPTURED` \n * `SUCCEEDED` \n * `FAILED` \n * `VOIDED`
+          \n * `REFUNDED` \n "
+        enum:
+        - PENDING
+        - REQUIRES_ACTION
+        - AUTHORIZED
+        - CAPTURED
+        - SUCCEEDED
+        - FAILED
+        - VOIDED
+        - REFUNDED
+        schema:
+          type: string
+      - name: reference_id
+        in: query
+        required: false
+        description: Filter by merchant reference ID
+        schema:
+          type: string
+      - name: from_date
+        in: query
+        format: date
+        required: false
+        description: Filter payments created on or after this date (ISO8601)
+        schema:
+          type: string
+      - name: to_date
+        in: query
+        format: date
+        required: false
+        description: Filter payments created on or before this date (ISO8601)
+        schema:
+          type: string
+      responses:
+        '200':
+          description: List of payment requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/payment_request"
+  "/api/v1/payment_requests/{id}":
+    get:
+      summary: Get a payment request
+      tags:
+      - Payment Requests
+      operationId: getPaymentRequest
+      security:
+      - basic_auth: []
+      description: Returns a single payment request by ID.
+      parameters:
+      - name: id
+        in: path
+        description: Payment request ID (e.g., pr-abc123)
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Payment request found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/payment_request"
+        '404':
+          description: Payment request not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/error"
+  "/api/v1/payment_requests/{id}/capture":
+    post:
+      summary: Capture a payment
+      tags:
+      - Payment Requests
+      operationId: capturePayment
+      security:
+      - basic_auth: []
+      description: Captures a previously authorized payment. Only works for payments
+        with capture_method=MANUAL and status=AUTHORIZED.
+      parameters:
+      - name: id
+        in: path
+        description: Payment request ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Payment captured
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/payment_request"
+        '404':
+          description: Payment request not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  description: Amount to capture in cents (defaults to full authorized
+                    amount)
+                  example: 10000
+  "/api/v1/payment_requests/{id}/void":
+    post:
+      summary: Void a payment
+      tags:
+      - Payment Requests
+      operationId: voidPayment
+      security:
+      - basic_auth: []
+      description: Voids a previously authorized payment. Only works for payments
+        with status=AUTHORIZED.
+      parameters:
+      - name: id
+        in: path
+        description: Payment request ID
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Payment voided
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/payment_request"
+        '404':
+          description: Payment request not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/error"
+  "/api/v1/qr_payments/{id}/simulate":
+    post:
+      summary: Simulate a QR code payment
+      tags:
+      - QR Payments
+      operationId: simulateQrPayment
+      security:
+      - basic_auth: []
+      description: Simulates a customer scanning and completing a QR code payment.
+        Test-only endpoint.
+      parameters:
+      - name: id
+        in: path
+        description: Payment request ID (must be a QR_CODE payment in REQUIRES_ACTION
+          status)
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: QR payment simulated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      status:
+                        type: string
+                      amount:
+                        type: integer
+                      captured_amount:
+                        type: integer
+                      payment_type:
+                        type: string
+        '404':
+          description: Payment request not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/error"
+  "/api/v1/payment_requests/{payment_request_id}/refunds":
+    post:
+      summary: Create a refund
+      tags:
+      - Refunds
+      operationId: createRefund
+      security:
+      - basic_auth: []
+      description: Creates a refund for a captured/succeeded payment. Supports full
+        and partial refunds.
+      parameters:
+      - name: payment_request_id
+        in: path
+        description: Payment request ID to refund
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: Refund created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/refund"
+        '404':
+          description: Payment request not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  description: Refund amount in cents (defaults to full remaining
+                    amount)
+                  example: 5000
+                reason:
+                  type: string
+                  description: Reason for the refund
+                  example: Customer request
+                reference_id:
+                  type: string
+                  description: Merchant reference for this refund
+                  example: refund-001
+  "/api/v1/refunds":
+    get:
+      summary: List refunds
+      tags:
+      - Refunds
+      operationId: listRefunds
+      security:
+      - basic_auth: []
+      description: Returns all refunds belonging to the authenticated merchant.
+      responses:
+        '200':
+          description: List of refunds
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/refund"
+  "/api/v1/refunds/{id}":
+    get:
+      summary: Get a refund
+      tags:
+      - Refunds
+      operationId: getRefund
+      security:
+      - basic_auth: []
+      description: Returns a single refund by ID.
+      parameters:
+      - name: id
+        in: path
+        description: Refund ID (e.g., rf-abc123)
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Refund found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/refund"
+        '404':
+          description: Refund not found
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/error"
+servers:
+- url: http://localhost:3001
+  description: Development
+components:
+  securitySchemes:
+    basic_auth:
+      type: http
+      scheme: basic
+      description: HTTP Basic Auth using api_key as username and api_secret as password
+  schemas:
+    error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Invalid parameters
+          required:
+          - code
+          - message
+      required:
+      - error
+    card_details:
+      type: object
+      properties:
+        masked_card_number:
+          type: string
+          example: "****1000"
+        card_network:
+          type: string
+          example: VISA
+        card_type:
+          type: string
+          example: CREDIT
+        expiry_month:
+          type: integer
+          example: 12
+        expiry_year:
+          type: integer
+          example: 2028
+        cardholder_name:
+          type: string
+          example: John Doe
+        token_id:
+          type: string
+          example: tok-abc123
+        fingerprint:
+          type: string
+          example: abc123def456
+    action:
+      type: object
+      properties:
+        type:
+          type: string
+          example: AUTH
+        url:
+          type: string
+          example: "/3ds/challenge/pm-abc123"
+          nullable: true
+        qr_string:
+          type: string
+          nullable: true
+      required:
+      - type
+    payment_method:
+      type: object
+      properties:
+        id:
+          type: string
+          example: pm-abc123
+        type:
+          type: string
+          enum:
+          - CARD
+          - EWALLET
+          - QR_CODE
+        status:
+          type: string
+          enum:
+          - ACTIVE
+          - PENDING_AUTHENTICATION
+          - FAILED
+          - EXPIRED
+        reusability:
+          type: string
+          enum:
+          - ONE_TIME_USE
+          - MULTIPLE_USE
+        card:
+          "$ref": "#/components/schemas/card_details"
+          nullable: true
+        actions:
+          type: array
+          items:
+            "$ref": "#/components/schemas/action"
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - type
+      - status
+      - reusability
+    payment_request:
+      type: object
+      properties:
+        id:
+          type: string
+          example: pr-abc123
+        reference_id:
+          type: string
+          example: order-001
+        amount:
+          type: integer
+          example: 10000
+        currency:
+          type: string
+          example: USD
+        status:
+          type: string
+          enum:
+          - PENDING
+          - REQUIRES_ACTION
+          - AUTHORIZED
+          - CAPTURED
+          - SUCCEEDED
+          - FAILED
+          - VOIDED
+          - REFUNDED
+        capture_method:
+          type: string
+          enum:
+          - AUTOMATIC
+          - MANUAL
+        payment_type:
+          type: string
+          enum:
+          - CARD
+          - EWALLET
+          - QR_CODE
+          nullable: true
+        payment_method_id:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        captured_amount:
+          type: integer
+          nullable: true
+        refunded_amount:
+          type: integer
+          nullable: true
+        failure_code:
+          type: string
+          nullable: true
+        channel_code:
+          type: string
+          nullable: true
+        qr_string:
+          type: string
+          nullable: true
+        ewallet_url:
+          type: string
+          nullable: true
+        actions:
+          type: array
+          items:
+            "$ref": "#/components/schemas/action"
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - reference_id
+      - amount
+      - currency
+      - status
+      - capture_method
+    refund:
+      type: object
+      properties:
+        id:
+          type: string
+          example: rf-abc123
+        payment_request_id:
+          type: string
+          example: pr-abc123
+        amount:
+          type: integer
+          example: 5000
+        reason:
+          type: string
+          nullable: true
+        reference_id:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+          - PENDING
+          - SUCCEEDED
+          - FAILED
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+      - id
+      - payment_request_id
+      - amount
+      - status
+security:
+- basic_auth: []

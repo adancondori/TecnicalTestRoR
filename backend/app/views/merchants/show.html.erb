@@ -1,0 +1,306 @@
+<div class="py-4">
+  <%# Header %>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1"><%= @merchant.business_name %></h2>
+      <span class="text-muted"><code><%= @merchant.id %></code></span>
+      <span class="ms-2"><%= status_badge(@merchant.status) %></span>
+    </div>
+    <div class="d-flex gap-2">
+      <%= link_to "Edit", edit_merchant_path(@merchant), class: "btn btn-outline-secondary" %>
+      <%= link_to "Delete", merchant_path(@merchant), method: :delete,
+            data: { confirm: "Are you sure you want to delete #{@merchant.business_name}? This will remove all associated data." },
+            class: "btn btn-outline-danger" %>
+      <%= link_to "Back to Merchants", merchants_path, class: "btn btn-outline-primary" %>
+    </div>
+  </div>
+
+  <% flash.each do |key, message| %>
+    <div class="alert alert-<%= key == 'notice' ? 'success' : 'danger' %> alert-dismissible fade show" role="alert">
+      <%= message %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  <% end %>
+
+  <%# Tabs %>
+  <ul class="nav nav-pills mb-4" id="merchantTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="transactions-tab" data-bs-toggle="pill"
+              data-bs-target="#transactions" type="button" role="tab">
+        Transactions
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="settings-tab" data-bs-toggle="pill"
+              data-bs-target="#settings" type="button" role="tab">
+        Settings
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="credentials-tab" data-bs-toggle="pill"
+              data-bs-target="#credentials" type="button" role="tab">
+        API Credentials
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="merchantTabsContent">
+    <%# === Transactions Tab === %>
+    <div class="tab-pane fade show active" id="transactions" role="tabpanel">
+      <%# Filters %>
+      <div class="card mb-4">
+        <div class="card-body">
+          <%= form_tag merchant_path(@merchant), method: :get, class: "row g-3 align-items-end" do %>
+            <div class="col-md-3">
+              <label for="status" class="form-label fw-bold">Status</label>
+              <%= select_tag :status,
+                    options_for_select(
+                      [["All Statuses", ""]] + PaymentRequest::STATUSES.map { |s| [s, s] },
+                      params[:status]
+                    ),
+                    class: "form-select" %>
+            </div>
+
+            <div class="col-md-3">
+              <label for="date_from" class="form-label fw-bold">From</label>
+              <%= date_field_tag :date_from, params[:date_from], class: "form-control" %>
+            </div>
+
+            <div class="col-md-3">
+              <label for="date_to" class="form-label fw-bold">To</label>
+              <%= date_field_tag :date_to, params[:date_to], class: "form-control" %>
+            </div>
+
+            <div class="col-md-2">
+              <%= submit_tag "Filter", class: "btn btn-primary w-100" %>
+            </div>
+
+            <div class="col-md-1">
+              <%= link_to "Clear", merchant_path(@merchant), class: "btn btn-outline-secondary w-100" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%# Summary Cards %>
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card text-center">
+            <div class="card-body">
+              <h5 class="card-title text-muted">Total</h5>
+              <h3><%= @payment_requests.count %></h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center border-success">
+            <div class="card-body">
+              <h5 class="card-title text-success">Succeeded</h5>
+              <h3 class="text-success"><%= @payment_requests.select { |pr| pr.status == "SUCCEEDED" }.count %></h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center border-danger">
+            <div class="card-body">
+              <h5 class="card-title text-danger">Failed</h5>
+              <h3 class="text-danger"><%= @payment_requests.select { |pr| pr.status == "FAILED" }.count %></h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card text-center border-info">
+            <div class="card-body">
+              <h5 class="card-title text-info">Authorized</h5>
+              <h3 class="text-info"><%= @payment_requests.select { |pr| pr.status == "AUTHORIZED" }.count %></h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# Transactions Table %>
+      <div class="card">
+        <div class="card-header bg-white">
+          <h5 class="mb-0">Payment Requests</h5>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>Reference</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Type</th>
+                <th>Capture</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if @payment_requests.any? %>
+                <% @payment_requests.each do |pr| %>
+                  <tr>
+                    <td><code class="text-muted small"><%= pr.id.truncate(16) %></code></td>
+                    <td><%= pr.reference_id %></td>
+                    <td class="fw-bold"><%= format_amount(pr.amount, pr.currency) %></td>
+                    <td><%= status_badge(pr.status) %></td>
+                    <td><%= payment_type_label(pr.payment_type) %></td>
+                    <td><small class="text-muted"><%= pr.capture_method %></small></td>
+                    <td><small class="text-muted"><%= pr.created_at.strftime("%Y-%m-%d %H:%M") %></small></td>
+                    <td>
+                      <%= link_to "View", merchant_payment_request_path(@merchant, pr),
+                            class: "btn btn-sm btn-outline-primary" %>
+                    </td>
+                  </tr>
+                <% end %>
+              <% else %>
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-4">
+                    No transactions found.
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <%# === Settings Tab === %>
+    <div class="tab-pane fade" id="settings" role="tabpanel">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="card mb-4">
+            <div class="card-header bg-white">
+              <h5 class="mb-0">Webhook Settings</h5>
+            </div>
+            <div class="card-body">
+              <dl>
+                <dt class="text-muted">Callback URL</dt>
+                <dd>
+                  <% if @merchant.callback_url.present? %>
+                    <code><%= @merchant.callback_url %></code>
+                  <% else %>
+                    <span class="text-muted">Not configured</span>
+                  <% end %>
+                </dd>
+
+                <dt class="text-muted mt-3">Webhook Secret</dt>
+                <dd>
+                  <div class="input-group" style="max-width: 500px;">
+                    <input type="password" class="form-control font-monospace" value="<%= @merchant.webhook_secret %>"
+                           id="webhookSecret" readonly>
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="toggleVisibility('webhookSecret', this)">Show</button>
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="copyToClipboard('webhookSecret')">Copy</button>
+                  </div>
+                </dd>
+              </dl>
+
+              <%= link_to "Regenerate Webhook Secret",
+                    regenerate_webhook_secret_merchant_path(@merchant),
+                    method: :patch,
+                    data: { confirm: "Are you sure? This will invalidate the current webhook secret." },
+                    class: "btn btn-warning btn-sm mt-2" %>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header bg-white">
+              <h5 class="mb-0">Merchant Details</h5>
+            </div>
+            <div class="card-body">
+              <dl>
+                <dt class="text-muted">Business Name</dt>
+                <dd class="fw-bold"><%= @merchant.business_name %></dd>
+
+                <dt class="text-muted mt-3">Status</dt>
+                <dd><%= status_badge(@merchant.status) %></dd>
+
+                <dt class="text-muted mt-3">Created At</dt>
+                <dd><%= @merchant.created_at.strftime("%Y-%m-%d %H:%M:%S UTC") %></dd>
+
+                <dt class="text-muted mt-3">Updated At</dt>
+                <dd><%= @merchant.updated_at.strftime("%Y-%m-%d %H:%M:%S UTC") %></dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# === API Credentials Tab === %>
+    <div class="tab-pane fade" id="credentials" role="tabpanel">
+      <div class="row">
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-header bg-white">
+              <h5 class="mb-0">API Credentials</h5>
+            </div>
+            <div class="card-body">
+              <p class="text-muted mb-4">
+                Use these credentials to authenticate API requests via HTTP Basic Auth.
+                The API key is the username and the API secret is the password.
+              </p>
+
+              <dl>
+                <dt class="text-muted">API Key</dt>
+                <dd>
+                  <div class="input-group" style="max-width: 500px;">
+                    <input type="text" class="form-control font-monospace" value="<%= @merchant.api_key %>"
+                           id="apiKey" readonly>
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="copyToClipboard('apiKey')">Copy</button>
+                  </div>
+                </dd>
+
+                <dt class="text-muted mt-3">API Secret</dt>
+                <dd>
+                  <div class="input-group" style="max-width: 500px;">
+                    <input type="password" class="form-control font-monospace" value="<%= @merchant.api_secret %>"
+                           id="apiSecret" readonly>
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="toggleVisibility('apiSecret', this)">Show</button>
+                    <button class="btn btn-outline-secondary" type="button"
+                            onclick="copyToClipboard('apiSecret')">Copy</button>
+                  </div>
+                </dd>
+              </dl>
+
+              <div class="mt-4 p-3 bg-light rounded">
+                <h6>Example Usage (cURL)</h6>
+                <pre class="mb-0 small"><code>curl -u "<%= @merchant.api_key %>:YOUR_API_SECRET" \
+  -H "Content-Type: application/json" \
+  http://localhost:3001/api/v1/payment_requests</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleVisibility(inputId, button) {
+  var input = document.getElementById(inputId);
+  if (input.type === "password") {
+    input.type = "text";
+    button.textContent = "Hide";
+  } else {
+    input.type = "password";
+    button.textContent = "Show";
+  }
+}
+
+function copyToClipboard(inputId) {
+  var input = document.getElementById(inputId);
+  var originalType = input.type;
+  input.type = "text";
+  input.select();
+  document.execCommand("copy");
+  input.type = originalType;
+}
+</script>

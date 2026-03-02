@@ -1,0 +1,32 @@
+<%= form_with(model: merchant, local: true) do |f| %>
+  <% if merchant.errors.any? %>
+    <div class="alert alert-danger">
+      <h5><%= pluralize(merchant.errors.count, "error") %> prohibited this merchant from being saved:</h5>
+      <ul class="mb-0">
+        <% merchant.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= f.label :business_name, class: "form-label fw-bold" %>
+    <%= f.text_field :business_name, class: "form-control", required: true, placeholder: "e.g. Acme Corp" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :status, class: "form-label fw-bold" %>
+    <%= f.select :status, Merchant::STATUSES.map { |s| [s, s] }, {}, class: "form-select" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :callback_url, "Webhook Callback URL", class: "form-label fw-bold" %>
+    <%= f.url_field :callback_url, class: "form-control", placeholder: "https://example.com/webhooks" %>
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit class: "btn btn-primary" %>
+    <%= link_to "Cancel", merchant.persisted? ? merchant_path(merchant) : merchants_path, class: "btn btn-outline-secondary" %>
+  </div>
+<% end %>
